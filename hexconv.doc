@@ -1,0 +1,149 @@
+$Id: //miscsw/eprom/hexconv.doc#1 $
+(C) 1995 Mark J. Blair
+
+	 Adding New Hex Format Support to hex2bin and bin2hex
+
+
+You will need to write three functions to support a new hex format:
+rd_format(), wr_format() and scan_format(). The 'format' part of each
+function name should be replaced with the name of your format. You
+will also need to add an entry to the structure which points to the
+handlers for various hex formats, as described below.
+
+rd_format() is responsible for reading hex data in your new format and
+converting it to binary. wr_format() is responsible for reading binary
+files and converting them to your new format. scan_format() is
+responsible for determining the number of data bytes, minimum address,
+maximum address and entry point for a file in your new hex format.
+
+rd_format() is a function of type RDHEXFUNC, as defined in "hex.h". It is
+defined as:
+
+	int rd_format(FILE *in, FILE *out, int ignoresum, ULONG *minaddr,
+	            ULONG *entry);
+
+in and out are streams for the input file and output file,
+respectively. in is seekable, but out may not be seekable. You may
+assume that your data begins at the beginning of file in, so it is
+safe to call rewind() on in if necessary. in will already be rewound
+when rd_format() is called. ignoresum is a flag which specifies
+whether or not rd_format() should ignore any checksum information
+which may be present in your hex file. minaddr and entry are pointers
+to variables that rd_format() should use to return the smallest
+address used in the file (the base address) and the entry point of the
+code stored in the file (if appropriate). If your format doesn't
+support a field containing an entry point, then you must set entry to
+zero. Either or both of these pointers may be NULL, so rd_format must
+check them before using them. rd_format() may call scan_format() if
+necessary.  You may want to do this to determine how much memory needs
+to be allocated to process the input file, for example. rd_format()
+must return H_ERR_NONE if the conversion was successful. If the
+conversion was unsuccessful for any reason, it must set the external
+variable hex_errno to one of the error return values define in hex.h,
+and return the same value that it placed in hex_errno. It should not
+modify hex_errno if the conversion was successful.
+
+wr_format() is a function of type WRHEXFUNC, as defined in "hex.h". It is
+defined as:
+
+	int wr_format(FILE *in, FILE *out, ULONG base, ULONG entry);
+
+in and out are streams for the input file and output file,
+respectively. in is seekable, but out may not be seekable. You may
+assume that your data begins at the beginning of file in, so it is
+safe to call rewind() on in if necessary. in will already be rewound
+when wr_format() is caled. base specifies the base address for the
+data in file in, and entry contains the address of the entry point for
+the code in that file. Your function should ignore entry if your
+format does not support an entry field. wr_format() must return
+H_ERR_NONE if the conversion was successful. If the conversion was
+unsuccessful for any reason, it must set the external variable
+hex_errno to one of the error return values define in hex.h, and
+return the same value that it placed in hex_errno. It should not
+modify hex_errno if the conversion was successful.
+
+
+scan_format() is a function of tupe SCANHEXFUNC, as defined in
+"hex.h". It is defined as:
+
+	int scan_format(FILE *in, ULONG *size, ULONG *minaddr,
+	                ULONG *maxaddr, ULONG *entry);
+
+in is a stream for the input file. in is seekable, and the data should
+start at the beginning of the file so that it is safe to call rewind()
+on in if necessary. in will already be rewound when  scan_format() is
+called. size, minaddr, maxaddr and entry are pointers to variables
+which are used to pass values back to the calling function. Any or all
+of these pointers may be NULL, so scan_format() must check each of
+them before using them. size is used to return the number of data
+bytes stred in the input file. minaddr and maxaddr are used to return
+the lowes and highest addresses used in the file, respectively. Note
+that size might not be equal to (maxaddr-minaddr)+1 if your hex format
+supports sparse data. entry is used to return the entry point for the
+code stored in the input file. If your format does not support an
+entry field, then your function must return zero in entry.
+
+After writing these three functions, you must define a new format
+identifier in "hex.h" (ie, a #define statement which defines
+FMT_FORMAT for your format), and add a new convstruct entry to the
+converters[] array in  file "libhex.c". converters[] is defined as:
+
+	typedef struct convstruct {
+	    char	*name;
+	    char	*desc;
+	    ULONG	maxaddr;
+	    RDHEXFUNC	*rd_hex;
+	    WRHEXFUNC	*wr_hex;
+	    SCANHEXFUNC	*scan_hex;
+	    char	*magic;
+	    int		magic_len;
+	    int		magic_offset;
+	} CONVSTRUCT;
+	extern CONVSTRUCT converters[];
+
+name is a string containing the name of your format. This name will be
+used in  the '-fformat' flag for bin2hex and hex2bin. desc is a brief
+(half-line or less) description of your format, and will be printed as
+part of the usage instructions for bin2hex and hex2bin. maxaddr is the
+largest allowable address in your format. rd_hex, wr_hex and scan_hex
+point to the three functions that you wrote for your hex format.
+magic, magic_len and magit_offset specify a magic number which can be
+used to automatically identify files in your format. Set them to NULL,
+zero and zero, respectively, if it is not possible to identify your
+files that way.
+
+See the code in "intel.c" for an complete example. This file contains
+several functions for writing hex data in various Intel hex formats,
+and a scan function and reader function which each understand how to
+read all of the Intel hex formats supported by the writing functions
+in "intel.c". Also, run bin2hex or hex2bin with the '-help' flag to
+see what the name and desc fields of converters[] look like.
+
+"hex.h" defines a macro called ERR() which sets hex_errno and returns
+the proper value. It expands to multiple C statements, so it must be
+placed inside a pair of braces when it is called by an if() statement.
+The following example will NOT work properly:
+
+	if(ferror(in))
+	    ERR(H_ERR_IO);
+
+The following example WILL work properly:
+
+	if(ferror(in))
+	{
+	    ERR(H_ERR_IO);
+	}
+
+Finally, you must modify "Makefile.src" to link your new code into
+"libhex.a".
+
+"libhex.a" can be used by other programs which require hex conversion
+capabilities. Programs must NOT call the rd_format(), wr_format() and
+scan_format() functions for the converters directly. They must ONLY
+call them by looking up their pointers in the converters[] array.
+Programs which include "libhex.a" may use hex_errno, hex_nerr,
+hex_errlist[], hex_perror(), fcat() and converters[], but must NOT
+access any other undocumented functions or variables defined in
+"libhex.a".
+
+

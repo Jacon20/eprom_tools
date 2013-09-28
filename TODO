@@ -1,0 +1,8 @@
+bin2hex, hex2bin:
+*	write other converters?
+*	write magic code in bhmain.c
+*	add magic strings to converters[]
+*	add 'scan only' function to bhmain.c (by checking argv[0]
+	for 'scanhex') (?)
+*	test for address overflow in bin2hex before conversion
+
