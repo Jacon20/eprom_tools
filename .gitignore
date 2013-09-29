@@ -1,0 +1,7 @@
+*.o
+._*.c
+*~
+libhex.a
+bin2hex
+hex2bin
+.DS_Store
