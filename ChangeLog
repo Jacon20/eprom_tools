@@ -1,2 +1,7 @@
+0.2:
+	5 APR 2014:
+	Fixed a crash due to an uninitialized variable. So now it REALLY
+	seems to work.
+
 0.1:
 	Old code I wrote back in 1995. Alpha quality. But hey, it seems to work.

@@ -5,4 +5,4 @@ bin2hex, hex2bin:
 *	add 'scan only' function to bhmain.c (by checking argv[0]
 	for 'scanhex') (?)
 *	test for address overflow in bin2hex before conversion
-
+*	add code to split/merge larger words to/from bytes in separate files.

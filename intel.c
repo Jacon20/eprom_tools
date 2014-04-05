@@ -71,6 +71,8 @@ int rd_intel(FILE *in, FILE *out, int ignoresum, ULONG *minaddr, ULONG *entry)
     ULONG	addr, base, linaddr, bufsize;
     int		linelen, i;
     
+    linaddr = 0;
+
     /* determine size and address range of data */
     if(scan_intel(in, NULL, &Lminaddr, &Lmaxaddr, &Lentry))
 	return hex_errno;

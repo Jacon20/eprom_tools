@@ -27,7 +27,7 @@
 #include "etools.h"
 #include "hex.h"
 
-#define VERSION "version 0.1 (ALPHA) (C) 1995 Mark J. Blair, distributed under GPLv3"
+#define VERSION "version 0.2 (ALPHA) (C) 1995 Mark J. Blair, distributed under GPLv3"
 
 void version(int bin2hex)
 {
